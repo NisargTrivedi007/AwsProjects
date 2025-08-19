@@ -1,0 +1,24 @@
+# AWS CodeBuild specification for .NET Core application
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      dotnet: 9.0
+  pre_build:
+    commands:
+      - echo Restore started on `date`
+      - dotnet restore AwsTestApi/AwsTestApi.csproj
+  build:
+    commands:
+      - echo Build started on `date`
+      - dotnet build AwsTestApi/AwsTestApi.csproj -c Release
+  post_build:
+    commands:
+      - echo Publish started on `date`
+      - dotnet publish AwsTestApi/AwsTestApi.csproj -c Release -o ./app
+
+artifacts:
+  files:
+    - ./**/*
+  base-directory: './app'
