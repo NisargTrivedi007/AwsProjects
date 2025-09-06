@@ -76,14 +76,17 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
         run: |
           # Build a docker container and push it to ECR so that it can be deployed to ECS.
-          docker build -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-south-1.amazonaws.com/aws-dotnet-api1:${{ github.sha }}
+          docker build -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-south-1.amazonaws.com/aws-dotnet-api1:${{ github.sha }} .
           docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-south-1.amazonaws.com/aws-dotnet-api1:${{ github.sha }}
         working-directory: ./AwsTestApi
 
       - name: Deploy UserAPI with Blue/Green
         run: |
-          # Get current task definition
-          aws ecs describe-task-definition --task-definition awstestapi1 --query taskDefinition > task-def.json
+          # Get current task definition and clean it for registration
+          aws ecs describe-task-definition --task-definition awstestapi1 --query taskDefinition > task-def-raw.json
+          
+          # Remove metadata fields that are not allowed in register-task-definition
+          jq 'del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .placementConstraints, .compatibilities, .registeredAt, .registeredBy, .deregisteredAt)' task-def-raw.json > task-def.json
           
           # Update image in task definition
           jq --arg IMAGE "${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-south-1.amazonaws.com/awstestapi1:${{ github.sha }}" '.containerDefinitions[0].image = $IMAGE' task-def.json > new-task-def.json
@@ -148,8 +151,11 @@ jobs:
 
       - name: Deploy AWSTestApi2 with Blue/Green
         run: |
-          # Get current task definition
-          aws ecs describe-task-definition --task-definition awstestapi2 --query taskDefinition > task-def.json
+          # Get current task definition and clean it for registration
+          aws ecs describe-task-definition --task-definition awstestapi2 --query taskDefinition > task-def-raw.json
+          
+          # Remove metadata fields that are not allowed in register-task-definition
+          jq 'del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .placementConstraints, .compatibilities, .registeredAt, .registeredBy, .deregisteredAt)' task-def-raw.json > task-def.json
           
           # Update image in task definition
           jq --arg IMAGE "${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-south-1.amazonaws.com/awstestapi2:${{ github.sha }}" '.containerDefinitions[0].image = $IMAGE' task-def.json > new-task-def.json
