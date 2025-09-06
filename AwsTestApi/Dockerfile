@@ -12,9 +12,9 @@ EXPOSE 8081
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
-COPY ["AwsTestApi/AwsTestApi.csproj", "AwsTestApi/"]
+COPY ["AwsTestApi.csproj", "AwsTestApi/"]
 RUN dotnet restore "./AwsTestApi/AwsTestApi.csproj"
-COPY . .
+COPY . AwsTestApi/
 WORKDIR "/src/AwsTestApi"
 RUN dotnet build "./AwsTestApi.csproj" -c $BUILD_CONFIGURATION -o /app/build
 

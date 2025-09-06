@@ -76,7 +76,7 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
         run: |
           # Build a docker container and push it to ECR so that it can be deployed to ECS.
-          docker build -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-south-1.amazonaws.com/aws-dotnet-api1:${{ github.sha }} -f src/AwsTestApi/Dockerfile src/AwsTestApi/
+          docker build -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-south-1.amazonaws.com/aws-dotnet-api1:${{ github.sha }}
           docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-south-1.amazonaws.com/aws-dotnet-api1:${{ github.sha }}
         working-directory: ./AwsTestApi
 
