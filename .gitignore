@@ -361,3 +361,5 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+/AwsTestApi/task-definition.json
+/AWSTestApi2/task-definition.json

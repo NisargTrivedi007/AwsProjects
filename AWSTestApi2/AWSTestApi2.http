@@ -1,0 +1,6 @@
+@AWSTestApi2_HostAddress = http://localhost:5153
+
+GET {{AWSTestApi2_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

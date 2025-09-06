@@ -11,6 +11,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Lambdas", "Lambdas", "{02EA
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AWSLambdaSQS", "Lambdas\AWSLambdaSQS\AWSLambdaSQS.csproj", "{090C9A5E-E5E1-C509-974B-DE120E2B20BD}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AWSTestApi2", "AWSTestApi2\AWSTestApi2.csproj", "{91163CC7-FD53-4CDB-B159-17B7C6FFF7BA}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -29,6 +31,10 @@ Global
 		{090C9A5E-E5E1-C509-974B-DE120E2B20BD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{090C9A5E-E5E1-C509-974B-DE120E2B20BD}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{090C9A5E-E5E1-C509-974B-DE120E2B20BD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{91163CC7-FD53-4CDB-B159-17B7C6FFF7BA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{91163CC7-FD53-4CDB-B159-17B7C6FFF7BA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{91163CC7-FD53-4CDB-B159-17B7C6FFF7BA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{91163CC7-FD53-4CDB-B159-17B7C6FFF7BA}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

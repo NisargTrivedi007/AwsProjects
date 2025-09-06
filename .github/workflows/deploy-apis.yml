@@ -1,0 +1,177 @@
+name: Deploy APIs to AWS ECS
+
+on:
+  push:
+    branches: [dev]
+    paths:
+      - 'AwsTestApi/**'
+      - 'AWSTestApi2/**'
+      - '.github/workflows/deploy-apis.yml'
+  pull_request:
+    branches: [dev]
+    paths:
+      - 'AwsTestApi/**'
+      - 'AWSTestApi2/**'
+      - '.github/workflows/deploy-apis.yml'
+
+env:
+  AWS_REGION: ap-south-1
+  AWSTESTAPI_ECR_REPOSITORY: aws-dotnet-api1
+  AWSTESTAPI2_ECR_REPOSITORY: aws-dotnet-api2
+  AWSTESTAPI_ECS_SERVICE: myapp-api1-service
+  AWSTESTAPI2_ECS_SERVICE: api2-service
+  ECS_CLUSTER: microservices-cluster
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      awstestapi-changed: ${{ steps.changes.outputs.awstestapi }}
+      awstestapi2-changed: ${{ steps.changes.outputs.awstestapi2 }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for changes
+        uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            awstestapi:
+              - 'AwsTestApi/**'
+            awstestapi2:
+              - 'AWSTestApi2/**'
+
+  deploy-awstestapi:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.awstestapi-changed == 'true'
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Get AWS Account ID
+        id: aws-account
+        run: echo "account-id=$(aws sts get-caller-identity --query Account --output text)" >> $GITHUB_OUTPUT
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, tag, and push image to Amazon ECR
+        id: build-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          # Build a docker container and push it to ECR so that it can be deployed to ECS.
+          docker build -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/userapi:${{ github.sha }} -f src/UserAPI/Dockerfile src/UserAPI/
+          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/userapi:${{ github.sha }}
+        working-directory: ./AwsTestApi
+
+      - name: Deploy UserAPI with Blue/Green
+        run: |
+          # Get current task definition
+          aws ecs describe-task-definition --task-definition awstestapi1 --query taskDefinition > task-def.json
+          
+          # Update image in task definition
+          jq --arg IMAGE "${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-south-1.amazonaws.com/awstestapi1:${{ github.sha }}" '.containerDefinitions[0].image = $IMAGE' task-def.json > new-task-def.json
+          
+          # Register new task definition
+          NEW_TASK_DEF=$(aws ecs register-task-definition --cli-input-json file://new-task-def.json --query 'taskDefinition.taskDefinitionArn' --output text)
+          
+          # Create AppSpec
+          cat > appspec.yaml << EOF
+          version: 0.0
+          Resources:
+            - TargetService:
+                Type: AWS::ECS::Service
+                Properties:
+                  TaskDefinition: "$NEW_TASK_DEF"
+                  LoadBalancerInfo:
+                    ContainerName: "api1-container"
+                    ContainerPort: 8080
+          EOF
+          
+          # Deploy with CodeDeploy
+          aws deploy create-deployment \
+            --application-name api1-codedeploy \
+            --deployment-group-name api1-deployment-group \
+            --revision revisionType=String,string={content="$(cat appspec.yaml | base64 -w 0)"}
+
+  deploy-awstestapi2:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.awstestapi2-changed == 'true'
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Get AWS Account ID
+        id: aws-account
+        run: echo "account-id=$(aws sts get-caller-identity --query Account --output text)" >> $GITHUB_OUTPUT
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, tag, and push image to Amazon ECR
+        id: build-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          # Build a docker container and push it to ECR so that it can be deployed to ECS.
+          docker build -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-south-1.amazonaws.com/awstestapi2:${{ github.sha }} .
+          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-south-1.amazonaws.com/awstestapi2:${{ github.sha }}
+        working-directory: ./AWSTestApi2
+
+      - name: Deploy AWSTestApi2 with Blue/Green
+        run: |
+          # Get current task definition
+          aws ecs describe-task-definition --task-definition awstestapi2 --query taskDefinition > task-def.json
+          
+          # Update image in task definition
+          jq --arg IMAGE "${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-south-1.amazonaws.com/awstestapi2:${{ github.sha }}" '.containerDefinitions[0].image = $IMAGE' task-def.json > new-task-def.json
+          
+          # Register new task definition
+          NEW_TASK_DEF=$(aws ecs register-task-definition --cli-input-json file://new-task-def.json --query 'taskDefinition.taskDefinitionArn' --output text)
+          
+          # Create AppSpec
+          cat > appspec.yaml << EOF
+          version: 0.0
+          Resources:
+            - TargetService:
+                Type: AWS::ECS::Service
+                Properties:
+                  TaskDefinition: "$NEW_TASK_DEF"
+                  LoadBalancerInfo:
+                    ContainerName: "api2-container"
+                    ContainerPort: 8080
+          EOF
+          
+          # Deploy with CodeDeploy
+          aws deploy create-deployment \
+            --application-name api2-codedeploy \
+            --deployment-group-name api2-deployment-group \
+            --revision revisionType=String,string={content="$(cat appspec.yaml | base64 -w 0)"}
