@@ -76,8 +76,8 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
         run: |
           # Build a docker container and push it to ECR so that it can be deployed to ECS.
-          docker build -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/userapi:${{ github.sha }} -f src/UserAPI/Dockerfile src/UserAPI/
-          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/userapi:${{ github.sha }}
+          docker build -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-south-1.amazonaws.com/aws-dotnet-api1:${{ github.sha }} -f src/AwsTestApi/Dockerfile src/AwsTestApi/
+          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-south-1.amazonaws.com/aws-dotnet-api1:${{ github.sha }}
         working-directory: ./AwsTestApi
 
       - name: Deploy UserAPI with Blue/Green
@@ -142,8 +142,8 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
         run: |
           # Build a docker container and push it to ECR so that it can be deployed to ECS.
-          docker build -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-south-1.amazonaws.com/awstestapi2:${{ github.sha }} .
-          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-south-1.amazonaws.com/awstestapi2:${{ github.sha }}
+          docker build -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-south-1.amazonaws.com/aws-dotnet-api2:${{ github.sha }} .
+          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-south-1.amazonaws.com/aws-dotnet-api2:${{ github.sha }}
         working-directory: ./AWSTestApi2
 
       - name: Deploy AWSTestApi2 with Blue/Green
